@@ -44,6 +44,8 @@ h1 { margin: 0; font-size: clamp(1.4rem, 2vw, 2.4rem); font-weight: 600; }
 .dot.now { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent); }
 
 .stage { width: 100%; margin: 0 auto; }
+html.rot, html.rot body { height: 100%; overflow: hidden; min-height: 0; padding-top: 0; padding-bottom: 0; }
+html.rot .app { position: fixed; top: 0; left: 0; transform-origin: 0 0; overflow: hidden; }
 .dock { display: flex; justify-content: center; gap: clamp(14px, 2vw, 28px); margin-top: clamp(12px, 1.6vw, 22px); }
 .round {
   width: clamp(56px, 6vw, 84px); height: clamp(56px, 6vw, 84px); border-radius: 50%; padding: 0;
@@ -638,14 +640,28 @@ h1 { margin: 0; font-size: clamp(1.4rem, 2vw, 2.4rem); font-weight: 600; }
   var sceneEl = document.getElementById('scene');
   function px(v) { return parseFloat(v) || 0; }
   function fit() {
+    var htmlEl = document.documentElement;
     var appEl = document.querySelector('.app');
     var dockEl = document.querySelector('.dock');
-    var cs = getComputedStyle(appEl), rs = getComputedStyle(document.documentElement);
-    var extraH = px(cs.paddingTop) + px(cs.paddingBottom) + px(rs.paddingTop) + px(rs.paddingBottom) +
+    var iw = window.innerWidth, ih = window.innerHeight;
+    /* phone held upright: turn the whole game sideways so it fills the screen like landscape */
+    var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    var rot = coarse && ih > iw && iw < 600;
+    htmlEl.classList.toggle('rot', rot);
+    var VW = rot ? ih : iw, VH = rot ? iw : ih;
+    if (rot) {
+      appEl.style.width = VW + 'px';
+      appEl.style.height = VH + 'px';
+      appEl.style.transform = 'translateX(' + iw + 'px) rotate(90deg)';
+    } else {
+      appEl.style.width = ''; appEl.style.height = ''; appEl.style.transform = '';
+    }
+    var cs = getComputedStyle(appEl), rs = getComputedStyle(htmlEl);
+    var extraH = px(cs.paddingTop) + px(cs.paddingBottom) + (rot ? 0 : px(rs.paddingTop) + px(rs.paddingBottom)) +
       dockEl.offsetHeight + px(getComputedStyle(dockEl).marginTop) + 4;
-    var availH = Math.max(220, window.innerHeight - extraH);
-    var availW = Math.max(240, appEl.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight));
-    var wide = window.innerWidth / window.innerHeight >= 1.25;
+    var availH = Math.max(180, VH - extraH);
+    var availW = Math.max(240, VW - px(cs.paddingLeft) - px(cs.paddingRight));
+    var wide = VW / VH >= 1.25;
     stageEl.style.width = availW + 'px';
     sceneEl.style.height = Math.floor(wide ? availH : Math.min(availH, availW / 1.1)) + 'px';
   }
